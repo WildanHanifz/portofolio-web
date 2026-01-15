@@ -4,7 +4,13 @@ import ReactMarkdown from 'react-markdown';
 import { useLocalStorage, ProjectData, BlogPost, SocialLink, ProfileData } from './hooks/useLocalStorage';
 // Vite: declare ImportMetaEnv agar TypeScript mengenali import.meta.env
 /// <reference types="vite/client" />
-import { EditMode } from './components/EditMode';
+let EditMode: React.FC<any> = () => null;
+if (import.meta.env.DEV) {
+  // Dynamic import agar tidak error di TypeScript/browser
+  import('./components/EditMode').then(mod => {
+    EditMode = mod.EditMode;
+  });
+}
 import { getSocialIcon } from './utils/getSocialIcon';
 // import ErrorBoundary from './components/ErrorBoundary';
 import { Link } from 'react-router-dom';
