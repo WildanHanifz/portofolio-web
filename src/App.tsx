@@ -5,10 +5,9 @@ import { useLocalStorage, ProjectData, BlogPost, SocialLink, ProfileData } from 
 // Vite: declare ImportMetaEnv agar TypeScript mengenali import.meta.env
 /// <reference types="vite/client" />
 let EditMode: any = () => null;
-if (import.meta.env && import.meta.env.DEV) {
-  import('./components/EditModeDevOnly').then(mod => {
-    EditMode = mod.default;
-  });
+if (import.meta.env.DEV) {
+  // @ts-ignore
+  EditMode = require('./components/EditMode').EditMode;
 }
 import { getSocialIcon } from './utils/getSocialIcon';
 // import ErrorBoundary from './components/ErrorBoundary';
