@@ -1,4 +1,4 @@
-<<<<<<< HEAD
+HEAD
 # portofolio-web
 =======
 # 🎨 Modern Developer Profile
@@ -118,4 +118,4 @@ MIT
 ---
 
 **New Features**: Interactive header, project detail viewer, dan code browser! 🚀
->>>>>>> 3bb970a (Initial commit)
+3bb970a (Initial commit)
