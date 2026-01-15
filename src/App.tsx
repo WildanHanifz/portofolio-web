@@ -1,8 +1,15 @@
 import React, { useState } from 'react';
 import { Calendar, Tag, X, ExternalLink, Github } from 'lucide-react';
 import ReactMarkdown from 'react-markdown';
-import { useLocalStorage, ProjectData, BlogPost, SocialLink } from './hooks/useLocalStorage';
-import { EditMode } from './components/EditMode';
+import { useLocalStorage, ProjectData, BlogPost, SocialLink, ProfileData } from './hooks/useLocalStorage';
+// Vite: declare ImportMetaEnv agar TypeScript mengenali import.meta.env
+/// <reference types="vite/client" />
+let EditMode: any = () => null;
+if (import.meta.env && import.meta.env.DEV) {
+  import('./components/EditModeDevOnly').then(mod => {
+    EditMode = mod.default;
+  });
+}
 import { getSocialIcon } from './utils/getSocialIcon';
 // import ErrorBoundary from './components/ErrorBoundary';
 import { Link } from 'react-router-dom';
@@ -17,26 +24,94 @@ const handleProjectImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
 };
 
 function HomePage() {
-  // Restore all required state and logic
-  // useLocalStorage returns an object, not array
+  // useLocalStorage untuk data lain (posts, theme)
   const {
-    profile,
-    projects,
-    posts,
     theme,
-    saveProfile,
-    saveProjects,
-    savePosts,
     saveTheme,
     exportData,
     importData,
     resetData,
     checkPassword,
-  } = useLocalStorage();
+  } = useLocalStorage(); // Only for theme, NOT posts/projects
+    const [posts, setPosts] = useState<BlogPost[]>([]);
+    // Fetch blog posts from backend
+    React.useEffect(() => {
+      fetch('/api/blog')
+        .then(res => res.json())
+        .then(data => setPosts(Array.isArray(data) ? data : []))
+        .catch(() => setPosts([]));
+    }, []);
+  const [profile, setProfile] = useState<ProfileData | null>(null);
+  const [projects, setProjects] = useState<ProjectData[]>([]);
   const [headerScrolled, setHeaderScrolled] = useState(false);
-  const [currentSlide, setCurrentSlide] = useState(0);
   const [selectedProject, setSelectedProject] = useState<ProjectData | null>(null);
   const [selectedPost, setSelectedPost] = useState<BlogPost | null>(null);
+  // State for header image slider
+  const [currentSlide, setCurrentSlide] = useState(0);
+
+  // Reset currentSlide if headerSlides changes or profile changes
+  React.useEffect(() => {
+    if (profile?.headerSlides && profile.headerSlides.length > 0) {
+      setCurrentSlide(0);
+    }
+  }, [profile?.headerSlides]);
+
+  // Fetch profile from backend
+  React.useEffect(() => {
+    fetch('/api/profile')
+      .then(res => res.json())
+      .then(data => setProfile(data))
+      .catch(() => setProfile(null));
+  }, []);
+
+  // Fetch projects from backend
+  React.useEffect(() => {
+    fetch('/api/project')
+      .then(res => res.json())
+      .then(data => setProjects(Array.isArray(data) ? data : []))
+      .catch(() => setProjects([]));
+  }, []);
+
+  // ...existing code...
+    // Save blog posts to backend (replace all)
+    const savePosts = (data: BlogPost[]) => {
+      setPosts(data);
+      fetch('/api/blog', {
+        method: 'POST',
+        headers: { 'Content-Type': 'application/json' },
+        body: JSON.stringify(data),
+      })
+        .then(() => {
+          // Refresh posts after save
+          fetch('/api/blog')
+            .then(res => res.json())
+            .then(data => setPosts(Array.isArray(data) ? data : []));
+        });
+    };
+  const saveProfile = (data: ProfileData) => {
+    setProfile(data);
+    fetch('/api/profile', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    });
+  };
+
+  // Save projects to backend (replace all)
+  const saveProjects = (data: ProjectData[]) => {
+    setProjects(data);
+    fetch('/api/project', {
+      method: 'POST',
+      headers: { 'Content-Type': 'application/json' },
+      body: JSON.stringify(data),
+    })
+      .then(() => {
+        // Refresh projects after save
+        fetch('/api/project')
+          .then(res => res.json())
+          .then(data => setProjects(Array.isArray(data) ? data : []));
+      });
+  };
 
   // Listen for scroll to update headerScrolled
   React.useEffect(() => {
@@ -52,25 +127,35 @@ function HomePage() {
     ? [...posts].sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
     : [];
 
-  // Scroll to section helper
-  const scrollToSection = (id: string) => {
-    const el = document.getElementById(id);
-    if (el) el.scrollIntoView({ behavior: 'smooth' });
-  };
+  // ...
 
   // Avatar image error handler
   const handleAvatarImageError = (e: React.SyntheticEvent<HTMLImageElement>) => {
     e.currentTarget.src = PLACEHOLDER_IMAGE;
   };
   return (
-    <AppRouter setSelectedProject={setSelectedProject}>
-      <div className="min-h-screen bg-[var(--color-background)] text-[var(--color-text)]">
+    <AppRouter setSelectedProject={setSelectedProject} projects={projects}>
+      <div className={`min-h-screen text-[var(--color-text)] ${headerScrolled ? 'bg-[var(--color-background)]' : 'bg-transparent'}`}> 
+        {/* Navigation Bar */}
+        <nav
+          className={`w-full fixed top-0 left-0 z-50 py-4 px-12 flex items-center transition-all duration-300
+            ${headerScrolled ? 'bg-[#263142] shadow-md' : 'bg-transparent shadow-none'}`}
+        >
+          <div className="mx-auto flex w-full max-w-5xl items-center justify-between">
+            <div className="text-2xl font-display font-bold text-white tracking-wide">Wildnnh</div>
+            <div className="flex gap-10 items-center">
+              <a href="#about" className="text-white text-lg font-semibold hover:underline transition-all">About</a>
+              <a href="#projects" className="text-white text-lg font-semibold hover:underline transition-all">Projects</a>
+              <a href="#blog" className="text-white text-lg font-semibold hover:underline transition-all">Blog</a>
+            </div>
+          </div>
+        </nav>
       {/* Header Section (only title & subtitle) */}
-      {profile.showHeader && (
-        <section className={`relative w-full min-h-screen flex items-center justify-center transition-all duration-500 ${headerScrolled ? 'shadow-lg' : ''}`}>
+      {profile?.showHeader && (
+        <section className={`relative w-full min-h-screen flex items-center justify-center transition-all duration-500 ${headerScrolled ? 'shadow-lg' : ''} pt-20`}>
           {/* Background Image/Slider */}
           <div className="absolute inset-0 w-full h-full overflow-hidden">
-            {profile.headerSlides && profile.headerSlides.length > 0 ? (
+            {profile?.headerSlides && profile.headerSlides.length > 0 ? (
               <div className="w-full h-full relative">
                 {profile.headerSlides.map((src: string, idx: number) => (
                   <img
@@ -82,58 +167,23 @@ function HomePage() {
                   />
                 ))}
               </div>
-            ) : profile.headerImage ? (
+            ) : profile?.headerImage ? (
               <img
                 src={profile.headerImage}
                 alt="Header"
                 className="w-full h-full object-cover"
-                draggable={false}
               />
-            ) : (
-              <div className="w-full h-full bg-gray-200" />
-            )}
-            <div className="absolute inset-0 bg-gradient-to-b from-black/60 to-black/10" />
-            {/* Black transparent overlay above image */}
-            <div className="absolute inset-0 w-full h-full bg-black/40 pointer-events-none z-10" />
+            ) : null}
           </div>
-          {/* Floating Nav */}
-          <nav
-            className={`fixed top-0 left-0 w-full flex justify-center items-center h-16 z-30 transition-all duration-300 ${headerScrolled ? 'bg-[#243041] shadow-lg' : 'bg-transparent'}`}
-            style={{ backdropFilter: !headerScrolled ? 'blur(0.5px)' : undefined }}
-          >
-            <div className="w-full max-w-6xl flex items-center justify-between px-8">
-              <span className={`font-display font-bold text-2xl tracking-tight transition-colors duration-300 ${headerScrolled ? 'text-white' : 'text-white'}`}>{profile.name || 'Profile'}</span>
-              <ul className="flex gap-8 text-lg font-display font-semibold">
-                <li>
-                  <button onClick={() => scrollToSection('about')} className={`hover:underline transition-colors duration-300 ${headerScrolled ? 'text-white' : 'text-white'}`}>About</button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection('projects')} className={`hover:underline transition-colors duration-300 ${headerScrolled ? 'text-white' : 'text-white'}`}>Projects</button>
-                </li>
-                <li>
-                  <button onClick={() => scrollToSection('blog')} className={`hover:underline transition-colors duration-300 ${headerScrolled ? 'text-white' : 'text-white'}`}>Blog</button>
-                </li>
-              </ul>
-            </div>
-          </nav>
-          {/* Header Content: Only title & subtitle, centered */}
-          <div className="relative z-10 flex flex-col items-center justify-center text-center text-white px-4 w-full">
-            <h1 className="text-5xl md:text-6xl font-display font-bold mb-4 drop-shadow-lg">{profile.headerTitle}</h1>
-            <h2 className="text-2xl md:text-3xl font-medium mb-4 drop-shadow">{profile.headerSubtitle}</h2>
+          {/* Header Title & Subtitle Always Visible */}
+          <div className="relative z-20 flex flex-col items-center justify-center w-full">
+            <h1 className="text-4xl md:text-5xl font-display font-bold text-center mb-4 drop-shadow-lg text-white">
+              {profile?.headerTitle || 'Welcome to my Space'}
+            </h1>
+            <h2 className="text-xl md:text-2xl font-medium text-center text-white drop-shadow">
+              {profile?.headerSubtitle || 'where code and creativity met'}
+            </h2>
           </div>
-          {/* Slider Dots */}
-          {profile.headerSlides && profile.headerSlides.length > 1 && (
-            <div className="absolute bottom-8 left-1/2 -translate-x-1/2 flex gap-2 z-20">
-              {profile.headerSlides.map((_: string, idx: number) => (
-                <button
-                  key={idx}
-                  className={`w-3 h-3 rounded-full ${currentSlide === idx ? 'bg-white' : 'bg-white/40'} border border-white`}
-                  onClick={() => setCurrentSlide(idx)}
-                  aria-label={`Go to slide ${idx + 1}`}
-                />
-              ))}
-            </div>
-          )}
         </section>
       )}
 
@@ -142,19 +192,19 @@ function HomePage() {
         <div className="w-full max-w-2xl bg-white rounded-3xl shadow-xl p-8 flex flex-col mb-6 border border-gray-200 mx-auto">
           <div className="flex flex-row flex-wrap items-center gap-8 mb-4 min-w-0">
             <img
-              src={profile.avatar}
-              alt={profile.name}
+              src={profile?.avatar || PLACEHOLDER_IMAGE}
+              alt={profile?.name || 'Avatar'}
               className="w-28 h-28 rounded-2xl border-2 border-gray-200 shadow object-cover bg-white flex-shrink-0"
               onError={handleAvatarImageError}
             />
             <div className="flex flex-col items-start flex-1 min-w-0">
-              <h2 className="text-3xl font-display font-bold mb-1 break-words">{profile.name}</h2>
-              <h3 className="text-lg font-medium text-gray-700 mb-1 break-words">{profile.role}</h3>
-              <p className="text-base text-gray-500 mb-0 break-words whitespace-pre-line">{profile.bio}</p>
+              <h2 className="text-3xl font-display font-bold mb-1 break-words">{profile?.name || ''}</h2>
+              <h3 className="text-lg font-medium text-gray-700 mb-1 break-words">{profile?.role || ''}</h3>
+              <p className="text-base text-gray-500 mb-0 break-words whitespace-pre-line">{profile?.bio || ''}</p>
             </div>
           </div>
           <div className="flex flex-wrap justify-start gap-3 mt-2 pl-36 min-w-0">
-            {profile.socialLinks.map((link: SocialLink) => {
+            {(profile?.socialLinks || []).map((link: SocialLink) => {
               const Icon = getSocialIcon(link.label, link.url);
               return (
                 <a
@@ -341,20 +391,26 @@ function HomePage() {
       </footer>
 
       {/* Edit Mode Floating Button & Panel */}
-      <EditMode
-        profile={profile}
-        projects={projects}
-        posts={posts}
-        theme={theme}
-        onSaveProfile={saveProfile}
-        onSaveProjects={saveProjects}
-        onSavePosts={savePosts}
-        onSaveTheme={saveTheme}
-        onExport={exportData}
-        onImport={importData}
-        onReset={resetData}
-        onCheckPassword={checkPassword}
-      />
+      {!profile ? (
+        <div className="w-full text-center py-20 text-gray-400 text-xl">
+          Failed to load profile data. Please check your backend server.
+        </div>
+      ) : (
+        <EditMode
+          profile={profile}
+          projects={projects}
+          posts={posts}
+          theme={theme}
+          onSaveProfile={saveProfile}
+          onSaveProjects={saveProjects}
+          onSavePosts={savePosts}
+          onSaveTheme={saveTheme}
+          onExport={exportData}
+          onImport={importData}
+          onReset={resetData}
+          onCheckPassword={checkPassword}
+        />
+      )}
     </div>
     </AppRouter>
   );

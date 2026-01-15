@@ -12,6 +12,9 @@ dist
 dist-ssr
 *.local
 
+# Ignore developer-only edit mode
+src/components/EditModeDevOnly.tsx
+
 # Editor directories and files
 .vscode/*
 !.vscode/extensions.json

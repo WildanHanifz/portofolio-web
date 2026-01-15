@@ -1,14 +1,26 @@
-require('dotenv').config();
+require('dotenv').config({ path: './.env.local' });
+
 const express = require('express');
 const cors = require('cors');
+const fetch = require('node-fetch');
+
 const app = express();
 const PORT = process.env.PORT || 5000;
+const connectDB = require('./db');
+
+console.log("MONGODB_URI:", process.env.MONGODB_URI); // DEBUG
 
 app.use(cors());
 app.use(express.json());
 
-// Contoh endpoint proxy ke API eksternal
-debugger;
+// MongoDB connection
+connectDB();
+
+// Routes
+app.use('/api/profile', require('./routes/profile'));
+app.use('/api/project', require('./routes/project'));
+app.use('/api/blog', require('./routes/blog'));
+
 app.post('/api/proxy', async (req, res) => {
   const { url, method = 'GET', body } = req.body;
   try {
