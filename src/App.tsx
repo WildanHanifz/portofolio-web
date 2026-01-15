@@ -4,11 +4,7 @@ import ReactMarkdown from 'react-markdown';
 import { useLocalStorage, ProjectData, BlogPost, SocialLink, ProfileData } from './hooks/useLocalStorage';
 // Vite: declare ImportMetaEnv agar TypeScript mengenali import.meta.env
 /// <reference types="vite/client" />
-let EditMode: any = () => null;
-if (import.meta.env.DEV) {
-  // @ts-ignore
-  EditMode = require('./components/EditMode').EditMode;
-}
+import { EditMode } from './components/EditMode';
 import { getSocialIcon } from './utils/getSocialIcon';
 // import ErrorBoundary from './components/ErrorBoundary';
 import { Link } from 'react-router-dom';
@@ -133,7 +129,7 @@ function HomePage() {
     e.currentTarget.src = PLACEHOLDER_IMAGE;
   };
   return (
-    <AppRouter setSelectedProject={setSelectedProject} projects={projects}>
+    <AppRouter projects={projects}>
       <div className={`min-h-screen text-[var(--color-text)] ${headerScrolled ? 'bg-[var(--color-background)]' : 'bg-transparent'}`}> 
         {/* Navigation Bar */}
         <nav

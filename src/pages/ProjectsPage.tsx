@@ -5,11 +5,10 @@ import { useNavigate } from 'react-router-dom';
 
 
 interface ProjectsPageProps {
-  setSelectedProject: (project: ProjectData | null) => void;
   projects: ProjectData[];
 }
 
-export default function ProjectsPage({ setSelectedProject, projects }: ProjectsPageProps) {
+export default function ProjectsPage({ projects }: ProjectsPageProps) {
   const navigate = useNavigate();
   const [selectedProject, setLocalSelectedProject] = React.useState<ProjectData | null>(null);
 

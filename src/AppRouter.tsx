@@ -6,17 +6,15 @@ import ProjectsPage from './pages/ProjectsPage';
 
 export default function AppRouter({
   children,
-  setSelectedProject,
   projects
 }: {
   children: React.ReactNode;
-  setSelectedProject: (project: any) => void;
   projects: any[];
 }) {
   return (
     <Routes>
       <Route path="/" element={children} />
-      <Route path="/projects" element={<ProjectsPage setSelectedProject={setSelectedProject} projects={projects} />} />
+      <Route path="/projects" element={<ProjectsPage projects={projects} />} />
     </Routes>
   );
 }
